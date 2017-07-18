@@ -9,7 +9,7 @@
 # GNU General Public License for more details.
 from PyQt5.QtCore import (QObject, QUrl, pyqtSlot, pyqtSignal, 
 pyqtProperty, QVariant, QThread)
-from PyQt5.QtQml import QQmlApplicationEngine, QQmlEngine, qmlRegisterType, QJSValue
+from PyQt5.QtQml import QQmlApplicationEngine, QQmlEngine, qmlRegisterType
 from PyQt5.QtWidgets import QApplication
 from math import *
 from sys import argv
@@ -37,7 +37,7 @@ class CompiledFun:
         self.__str = funstr
         self.__args = args
     
-    def __call__(self, argv):
+    def __call__(self, argv={}):
         return self.__fun(**argv)
     
     def __str__(self):
@@ -152,7 +152,7 @@ class ImpulseSystem(QObject):
         self.theta = []
         self.results = []
         
-    @pyqtProperty(int)
+    @property
     def dim(self):
         return self.__dim
         
@@ -163,6 +163,22 @@ class ImpulseSystem(QObject):
             self.__impoperator.dim = dim
             self.__dim = dim
         pass
+    
+    @property
+    def diffsys(self):
+        return self.__diffsys
+    
+    @diffsys.setter
+    def diffsys(self, val):
+        self.__diffsys = val
+    
+    @property
+    def impoperator(self):
+        return self.__impoperator
+    
+    @impoperator.setter
+    def impoperator(self, val):
+        self.__impoperator = val
     
     def setfuntodiffsys(self, index, fun):
         self.__diffsys[index] = fun
@@ -223,6 +239,73 @@ class ImpulseSystem(QObject):
         for i in xarglist(self.dim):
             p[i] = p[i] + step/6 * (k1[i] + 2*k2[i] + 2*k3[i] + k4[i])
         return p
+        
+
+class ImpulseSystemDelegate:
+    def __init__(self, **args):
+        self.fileurl = ''
+        self.__systemdict = args
+        pass
+    
+    def setdata(self, **args):
+        self.__systemdict = args
+    
+    def data(self):
+        return self.__systemdict
+    
+    def load(self):
+        import json
+        impsysfile = open(QUrl(self.fileurl).toLocalFile(), "r")
+        jsonstr = impsysfile.read()
+        impsysfile.close()
+        self.__systemdict = json.loads(jsonstr)
+        
+    def save(self):
+        import json
+        impsysfile = open(QUrl(self.fileurl).toLocalFile(), "w")
+        jsonstr = json.dumps(self.__systemdict)
+        impsysfile.write(jsonstr)
+        impsysfile.close()
+        pass
+    
+    def parsedim(self):
+        return int(self.__systemdict["dim"])
+    
+    def parsesystematkey(self, key):
+        system = System()
+        system.dim = int(self.__systemdict["dim"])
+        for i in self.__systemdict[key]:
+            system[int(i['index'])] = i['right']
+        return system
+    
+    def parsediffsystem(self):
+        return self.parsesystematkey('diffsys')
+    
+    def parseimpoperator(self):
+        return self.parsesystematkey('impoper')
+    
+    def parsepoints(self):
+        strpoints = self.__systemdict['points']
+        fpoints = []
+        for point in strpoints:
+            fpoint = {}
+            for k in point:
+                fu = CompiledFun(point[k], []) 
+                fpoint[k] = fu({})
+            fpoints.append(fpoint)
+        return fpoints
+    
+    def parsetheta(self):
+        theta = []
+        for th in self.__systemdict['thetastr']:
+            fu = CompiledFun(th, [])
+            val = fu()
+            if val > 0:
+                theta.append(val)
+            else:
+                raise Exception("Промежуток должен быть больше 0: " + th + " = " + str(val))
+        return theta
+    pass
 
 
 class QMLWindowController(QObject):
@@ -276,6 +359,7 @@ class MainWindowController(QMLWindowController):
         self.connects()
         self.__bgthread = QThread()
         self.__impsyslist = []
+        self.__impulsesystemdelegate = ImpulseSystemDelegate()
     
     def connects(self):
         self.window.calculate.connect(self.startCalculated)
@@ -285,48 +369,32 @@ class MainWindowController(QMLWindowController):
         self.window.openFile.connect(self.openFile)
         self.window.saveFile.connect(self.saveFile)
     
+    def setargstodelegate(self):
+        self.__impulsesystemdelegate.setdata(
+            dim = self.dim,
+            diffsys = self.diffSysList,
+            impoper = self.impOperatorList,
+            points = self.points,
+            thetastr = self.theta
+        )
+
+    def readdatafromdelegate(self):
+        data = self.__impulsesystemdelegate.data()
+        self.dim = data["dim"]
+        self.diffSysList = data["diffsys"]
+        self.impOperatorList = data["impoper"]
+        self.points = data["points"]
+        self.theta = data["thetastr"]
+
     def openFile(self, url):
-        import json
-        try:
-            u = QUrl(url)
-            impsysfile = open(u.toLocalFile(), "r")
-            jsonstr = impsysfile.read()
-            impsysfile.close()
-            
-            data = json.loads(jsonstr)
-            self.dim = data["dim"]
-            self.diffSysList = data["diffsys"]
-            self.impOperatorList = data["impoper"]
-            self.points = data["points"]
-            self.theta = data["thetastr"]
-            
-        except Exception as ex:
-            self.error.emit("Ошибка при чтении файла", str(ex))
-            return
+        self.__impulsesystemdelegate.fileurl = url
+        self.runblockorprinterror(self.__impulsesystemdelegate.load, "Ошибка при чтении файла")
+        self.readdatafromdelegate()
     
     def saveFile(self, url):
-        import json
-        try:
-            u = QUrl(url)
-            impsysfile = open(u.toLocalFile(), "w")
-            dim = self.dim
-            diffsys = self.diffSysList
-            impoper = self.impOperatorList
-            points = self.points
-            thetastr = self.theta
-            data = {
-                "dim": dim, 
-                "diffsys": diffsys, 
-                "impoper": impoper, 
-                "points": points,
-                "thetastr": thetastr
-            }
-            jsonstr = json.dumps(data)
-            impsysfile.write(jsonstr)
-            impsysfile.close()
-        except Exception as ex:
-            self.error.emit("Ошибка при записи файла", str(ex))
-            return
+        self.setargstodelegate()
+        self.__impulsesystemdelegate.fileurl = url
+        self.runblockorprinterror(self.__impulsesystemdelegate.save, "Ошибка при записи файла")
     
     @property
     def dim(self):
@@ -340,7 +408,6 @@ class MainWindowController(QMLWindowController):
         return self.window.property("diffSysList").toVariant()
     @diffSysList.setter
     def diffSysList(self, val):
-        print(val)
         self.window.setProperty("diffSysList", val)
     
     @property
@@ -364,51 +431,28 @@ class MainWindowController(QMLWindowController):
     def theta(self, val):
         self.window.setProperty("theta", val)
     
+    def runblockorprinterror(self, block, errortitle):
+        try:
+            block()
+            return True
+        except Exception as ex:
+            print(str(ex))
+            self.error.emit(errortitle, str(ex))
+            return False
+    
     def startCalculated(self, time, step):
-        dim = self.dim
-        diffsys = self.diffSysList
-        impoper = self.impOperatorList
-        points = self.points
-        thetastr = self.theta
-        try:
-            for point in points:
-                for k in point:
-                    fu = CompiledFun(point[k], []) 
-                    point[k] = fu({})
-        except Exception as ex:
-            self.error.emit("Ошибка в начальных точках", str(ex))
-            return
-        theta = []
-        try:
-            for th in thetastr:
-                fu = CompiledFun(th, [])
-                val = fu({})
-                if val > 0:
-                    theta.append()
-                else:
-                    raise Exception("Промежуток должен быть больше 0: " + th + " = " + str(val))
-                pass
-        except Exception as ex:
-            self.error.emit("Ошибка в списке Theta", str(ex))
-            return
+        self.setargstodelegate()
         impsys = ImpulseSystem()
-        impsys.dim = dim
-        
-        try:
-            for i in diffsys:
-                impsys.setfuntodiffsys(int(i["index"]), i["right"])
-        except Exception as ex:
-            self.error.emit("Ошибка в дифф системе", str(ex))
-            return
-        try:
-            for i in impoper:
-                impsys.setfuntoimpoper(int(i["index"]), i["right"])
-        except Exception as ex:
-            self.error.emit("Ошибка в импульсном операторе", str(ex))
-            return
-        impsys.points = points
-        impsys.theta = theta
-        
+        impsys.dim = self.__impulsesystemdelegate.parsedim()
+        def parsepoints(): impsys.points = self.__impulsesystemdelegate.parsepoints()
+        def parsetheta(): impsys.theta = self.__impulsesystemdelegate.parsetheta()
+        def parsediffsystem(): impsys.diffsys = self.__impulsesystemdelegate.parsediffsystem()
+        def parseimpoperator(): impsys.impoperator = self.__impulsesystemdelegate.parseimpoperator()
+        if not self.runblockorprinterror(parsepoints, "Ошибка в начальных точках"): return
+        if not self.runblockorprinterror(parsetheta, "Ошибка в списке промежутков"): return
+        if not self.runblockorprinterror(parsediffsystem, "Ошибка в дифф системе"): return
+        if not self.runblockorprinterror(parseimpoperator, "Ошибка в импульсном операторе"): return
+        print(impsys.points)
         self.addsystobgthread(impsys)
         self.__bgthread.start()
         self.startcalc.emit(time, step)

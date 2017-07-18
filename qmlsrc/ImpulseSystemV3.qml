@@ -258,7 +258,8 @@ Window {
                 saveFile(file)
             }
         }
-        nameFilters: ["*.isv3"]
+        defaultSuffix: "isv3"
+        nameFilters: ["ImpSystem File (*.isv3)", "All files (*)"]
     }
 
     BusyIndicator {

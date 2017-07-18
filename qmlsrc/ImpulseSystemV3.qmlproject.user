@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 4.3.1, 2017-07-18T15:55:08. -->
+<!-- Written by QtCreator 4.3.1, 2017-07-19T01:00:08. -->
 <qtcreator>
  <data>
   <variable>EnvironmentId</variable>
@@ -176,7 +176,7 @@
     </valuelist>
     <value type="int" key="PE.EnvironmentAspect.Base">2</value>
     <valuelist type="QVariantList" key="PE.EnvironmentAspect.Changes"/>
-    <value type="QString" key="ProjectExplorer.CustomExecutableRunConfiguration.Arguments">ImpulseSystemV3.py</value>
+    <value type="QString" key="ProjectExplorer.CustomExecutableRunConfiguration.Arguments">ImpulseProblemV3.py</value>
     <value type="QString" key="ProjectExplorer.CustomExecutableRunConfiguration.Executable">python3</value>
     <value type="bool" key="ProjectExplorer.CustomExecutableRunConfiguration.UseTerminal">false</value>
     <value type="QString" key="ProjectExplorer.CustomExecutableRunConfiguration.WorkingDirectory">%{sourceDir}/../</value>

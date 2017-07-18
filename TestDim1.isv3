@@ -1,0 +1,1 @@
+{"thetastr": ["1"], "points": [{"t": "0", "x1": "1"}, {"t": "1", "x1": "2"}], "diffsys": [{"right": "x1", "left": "dx1/dt", "index": 0}], "dim": 1, "impoper": [{"right": "x1/2", "left": "x1", "index": 0}]}
