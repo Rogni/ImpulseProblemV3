@@ -382,7 +382,11 @@ class MainWindowController(QMLWindowController):
         try:
             for th in thetastr:
                 fu = CompiledFun(th, [])
-                theta.append(fu({}))
+                val = fu({})
+                if val > 0:
+                    theta.append()
+                else:
+                    raise Exception("Промежуток должен быть больше 0: " + th + " = " + str(val))
                 pass
         except Exception as ex:
             self.error.emit("Ошибка в списке Theta", str(ex))

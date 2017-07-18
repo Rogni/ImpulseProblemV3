@@ -141,7 +141,7 @@ Window {
                 }
                 ThetaView {
                     id: thetaView
-                    headerTitle: "θ=[θ1, θ2, ...]"
+                    headerTitle: "Промежутки между импульсами θ=[θ1, θ2, ...]"
                     Layout.minimumHeight: 100
                     model: window.theta
                 }

@@ -118,6 +118,7 @@ Dialogs.Dialog {
         ComboBox {
             id: comboBox2
             height: 40
+            enabled: checkDelegate.checked
             anchors.verticalCenter: parent.verticalCenter
             anchors.right: parent.right
             anchors.rightMargin: 0
