@@ -7,9 +7,9 @@ http://pyqt.sourceforge.net/Docs/PyQt5/installation.html <br>
 
 python -m pip install matplotlib pyqt5 <br>
 
-3. Запустите ImpulseSystemV3.py используя python <br>
+3. Запустите ImpulseProblemV3.py используя python <br>
 
-python ImpulseSystemV3.py <br>
+python ImpulseProblemV3.py <br>
 
 # Инструкция
 1. Общая информация  <br>

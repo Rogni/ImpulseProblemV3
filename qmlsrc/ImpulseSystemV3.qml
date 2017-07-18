@@ -10,7 +10,7 @@ Window {
     visible: true
     width: 800
     height: 600
-    title: qsTr("ImpulseSystemV3")
+    title: qsTr("ImpulseProblemV3.py")
 
     property int dim: 1
     property var args: []
