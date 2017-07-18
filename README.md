@@ -6,7 +6,7 @@ https://matplotlib.org/users/installing.html <br>
 http://pyqt.sourceforge.net/Docs/PyQt5/installation.html <br>
 
 Windows:
-В командной строке от имени администратора (http://remontka.pro/run-command-line-admin/) выполните
+В командной строке от имени администратора (http://remontka.pro/run-command-line-admin/) выполните <br>
 python -m pip install matplotlib pyqt5 <br>
 
 3. Запустите ImpulseProblemV3.py используя python <br>
