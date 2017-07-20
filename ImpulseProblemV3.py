@@ -11,9 +11,12 @@ from PyQt5.QtCore import (QObject, QUrl, pyqtSlot, pyqtSignal,
 pyqtProperty, QVariant, QThread)
 from PyQt5.QtQml import QQmlApplicationEngine, QQmlEngine, qmlRegisterType
 from PyQt5.QtWidgets import QApplication
-from math import *
 from sys import argv
+import json
 
+from core.CompiledFun import CompiledFun
+from core.ImpulseSystem import ImpulseSystem, System, arglist, result_arglist
+from core.Localization import LangManagerSingleton
 
 try:
     from OpenGL import GLU
@@ -21,231 +24,23 @@ except Exception:
     pass
 
 
-def xarglist(dim):
-    return ['x'+str(i+1) for i in range(dim)]
+QML_SRC_DIR = "qmlsrc/%s"
+QML_RESULT_WINDOW_URL = QML_SRC_DIR % "ResultWindow.qml"
+QML_MAIN_WINDOW_URL = QML_SRC_DIR % "ImpulseSystemV3.qml"
 
-def arglist(dim):
-    return ['t'] + xarglist(dim) + ['T']
-
-class CompiledFun:
-    def __init__(self, funstr, args=['x1']):
-        frmstr = funstr.replace("^","**").replace("\n","").replace(";","")
-        eq = 'def compfun'+str(tuple(args)).replace("'", '') + ': return ' + frmstr
-        c = compile(eq, '<string>', 'exec')
-        exec(c)
-        self.__fun = vars()['compfun']
-        self.__str = funstr
-        self.__args = args
-    
-    def __call__(self, argv={}):
-        return self.__fun(**argv)
-    
-    def __str__(self):
-        return self.__str
-
-
-class ThetaIter:
-    def __init__(self, thetalist):
-        self.__index = 0
-        self.__nextval = thetalist[0]
-        self.__theta = thetalist
-
-    def next(self):
-        self.__index = self.__index + 1 if self.__index != len(self.__theta) - 1 else 0
-        self.__nextval += self.__theta[self.__index]
-    
-    def prev(self):
-        self.__index = self.__index - 1 if self.__index else len(self.__theta) - 1
-        self.__nextval -= self.__theta[self.__index]
-        pass
-    
-    def nextval(self):
-        return self.__nextval
-
-    def nexttheta(self):
-        return self.__theta[self.__index]
-
-    def searchinitindex(self, t):
-        while t < self.__nextval:
-            self.prev()
-        while t >= self.__nextval:
-            self.next()
-        pass
-
-    pass
-
-
-class System:
-    def __init__(self):
-        self.dim = 1
-        pass
-    
-    @property
-    def dim(self):
-        return self.__dim
         
-    @dim.setter
-    def dim(self, dim):
-        if dim > 0:
-            self.__dim = dim
-            self.__args = arglist(dim)
-            self.__funcs = [CompiledFun("0", self.__args) for i in range(self.dim)]
+class ImpulseSystemDelegate(object):
+    """
+    """
     
-    def __setitem__(self, index, strfun):
-        try:
-            c = CompiledFun(strfun, self.__args)
-            self.__funcs[index] = c
-        except Exception as ex:
-            print(ex)
-        
-    def __getitem__(self, index):
-        return str(self.__funcs[index])
-
-    def __call__(self, argv):
-        p = argv.copy()
-        xargs = xarglist(self.dim)
-        for i in range(self.dim):
-            p[xargs[i]] = self.__funcs[i](argv)
-        return p
-
-
-class Result:
-    def __init__(self, dim, args):
-        self.dim = dim
-        self.__args = args
-        self.__reluts = {k: [] for k in args}
-        self.__reluts['norma'] = []
-        pass
-    
-    def push_point(self, point):
-        for k in self.__args:
-            self.__reluts[k].append(point[k])
-        self.__reluts['norma'].append(self.norma(point))
-    
-    def __getitem__(self, key):
-        return {i: self.__reluts[key][i] for i in self.__args}
-        
-    def valueOf(self, key): 
-        self[key]
-    
-    def dict(self):
-        return self.__reluts
-    
-    def norma(self, point):
-        n = 0
-        args = xarglist(self.dim)
-        for a in args:
-            n += point[a]**2
-        return n**(1/2)
-    pass
-
-
-class ImpulseSystem(QObject):
-    calccompleted = pyqtSignal(QObject)
-    errorcalc = pyqtSignal(QObject, str)
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.__diffsys = System()
-        self.__impoperator = System()
-        self.dim = 1
-        self.points = []
-        self.theta = []
-        self.results = []
-        
-    @property
-    def dim(self):
-        return self.__dim
-        
-    @dim.setter
-    def dim(self, dim):
-        if dim > 0:
-            self.__diffsys.dim = dim
-            self.__impoperator.dim = dim
-            self.__dim = dim
-        pass
-    
-    @property
-    def diffsys(self):
-        return self.__diffsys
-    
-    @diffsys.setter
-    def diffsys(self, val):
-        self.__diffsys = val
-    
-    @property
-    def impoperator(self):
-        return self.__impoperator
-    
-    @impoperator.setter
-    def impoperator(self, val):
-        self.__impoperator = val
-    
-    def setfuntodiffsys(self, index, fun):
-        self.__diffsys[index] = fun
-    
-    def setfuntoimpoper(self, index, fun):
-        self.__impoperator[index] = fun
-    
-    @pyqtSlot(float, float)
-    def startcalc(self, maxtime, step):
-        self.results = []
-        try:
-            for point in self.points:
-                self.results.append(self.calcpoint(point, maxtime, step))
-            self.calccompleted.emit(self)
-        except Exception as ex:
-            #raise ex
-            self.errorcalc.emit(self, str(ex))
-    
-    def calcpoint(self, point, maxtime, step):
-        thetaindex = 0
-        t = point['t']
-        if len(self.theta) == 0:
-            self.theta = [maxtime+step]
-        thetaiter = ThetaIter(self.theta)
-        thetaiter.searchinitindex(t)
-        p =  point.copy()
-        p['T'] = thetaiter.nexttheta()
-        res = Result(self.dim, tuple(p.keys()))
-        res.push_point(p)
-        while t < maxtime:
-            if t+step >= thetaiter.nextval():
-                _h = thetaiter.nextval() - t
-                p = self.nextpoint(p, _h)
-                res.push_point(p)
-                p = self.__impoperator(p)
-                thetaiter.next()
-                p['T'] = thetaiter.nexttheta()
-                res.push_point(p)
-            else:
-                p = self.nextpoint(p, step)
-                res.push_point(p)
-            t = p['t']
-        return res.dict()
-    
-    def nextpoint(self, point, step):
-        def modifpoint(point, h, k):
-            p = point.copy()
-            p['t'] += h
-            for i in xarglist(self.dim):
-                p[i] = p[i] + h*k[i]
-            return p
-        k1 = self.__diffsys(point)
-        k2 = self.__diffsys(modifpoint(point, step/2, k1))
-        k3 = self.__diffsys(modifpoint(point, step/2, k2))
-        k4 = self.__diffsys(modifpoint(point, step, k3))
-        p = point.copy()
-        p['t'] += step
-        for i in xarglist(self.dim):
-            p[i] = p[i] + step/6 * (k1[i] + 2*k2[i] + 2*k3[i] + k4[i])
-        return p
-        
-
-class ImpulseSystemDelegate:
+    PROP_NAME_DIM = "dim"
+    PROP_NAME_DIFFSYS = "diffsys"
+    PROP_NAME_IMP_OPER = "impoper"
+    PROP_NAME_POINTS = "points"
+    PROP_NAME_THETA = "thetastr"
     def __init__(self, **args):
         self.fileurl = ''
         self.__systemdict = args
-        pass
     
     def setdata(self, **args):
         self.__systemdict = args
@@ -254,38 +49,35 @@ class ImpulseSystemDelegate:
         return self.__systemdict
     
     def load(self):
-        import json
         impsysfile = open(QUrl(self.fileurl).toLocalFile(), "r")
         jsonstr = impsysfile.read()
         impsysfile.close()
         self.__systemdict = json.loads(jsonstr)
         
     def save(self):
-        import json
         impsysfile = open(QUrl(self.fileurl).toLocalFile(), "w")
         jsonstr = json.dumps(self.__systemdict)
         impsysfile.write(jsonstr)
         impsysfile.close()
-        pass
     
     def parsedim(self):
-        return int(self.__systemdict["dim"])
+        return int(self.__systemdict[self.PROP_NAME_DIM])
     
     def parsesystematkey(self, key):
         system = System()
-        system.dim = int(self.__systemdict["dim"])
+        system.dim = self.parsedim()
         for i in self.__systemdict[key]:
             system[int(i['index'])] = i['right']
         return system
     
     def parsediffsystem(self):
-        return self.parsesystematkey('diffsys')
+        return self.parsesystematkey(self.PROP_NAME_DIFFSYS)
     
     def parseimpoperator(self):
-        return self.parsesystematkey('impoper')
+        return self.parsesystematkey(self.PROP_NAME_IMP_OPER)
     
     def parsepoints(self):
-        strpoints = self.__systemdict['points']
+        strpoints = self.__systemdict[self.PROP_NAME_POINTS]
         fpoints = []
         for point in strpoints:
             fpoint = {}
@@ -297,18 +89,33 @@ class ImpulseSystemDelegate:
     
     def parsetheta(self):
         theta = []
-        for th in self.__systemdict['thetastr']:
+        for th in self.__systemdict[self.PROP_NAME_THETA]:
             fu = CompiledFun(th, [])
             val = fu()
             if val > 0:
                 theta.append(val)
             else:
-                raise Exception("Промежуток должен быть больше 0: " + th + " = " + str(val))
+                raise Exception(LangManagerSingleton.localization().ERROR_THETA_MUST_ABOVE_ZERO % (th , str(val)))
         return theta
-    pass
-
+    
+    def dim(self):
+        return self.__systemdict[self.PROP_NAME_DIM]
+        
+    def diffsys(self):
+        return self.__systemdict[self.PROP_NAME_DIFFSYS]
+        
+    def impoperator(self):
+        return self.__systemdict[self.PROP_NAME_IMP_OPER]
+        
+    def points(self):
+        return self.__systemdict[self.PROP_NAME_POINTS]
+        
+    def theta(self):
+        return self.__systemdict[self.PROP_NAME_THETA]
 
 class QMLWindowController(QObject):
+    """
+    """
     def __init__(self, urlstr, parent=None):
         super().__init__(parent)
         self.engine = QQmlApplicationEngine()
@@ -320,7 +127,7 @@ class QMLWindowController(QObject):
 
 class ResultWindowController(QMLWindowController):
     def __init__(self, parent=None):
-        super().__init__('qmlsrc/ResultWindow.qml',parent)
+        super().__init__(QML_RESULT_WINDOW_URL, parent)
         self.window.plotResult.connect(self.drawplotresult)
 
     def setresult(self, args, res):
@@ -335,10 +142,8 @@ class ResultWindowController(QMLWindowController):
         import matplotlib.backends.backend_qt5 as mplqt
         from mpl_toolkits.mplot3d import Axes3D
         mpl.rcParams["axes.grid"] = True
-        
         if len(args.toVariant())==3:
             mpl.axes(projection='3d')
-        
         for r in self.__res:
             pl = []
             for k in args.toVariant():
@@ -346,7 +151,6 @@ class ResultWindowController(QMLWindowController):
             mpl.plot(*pl)
         mpl.axis('equal') 
         mplqt.show()
-        pass
 
 
 class MainWindowController(QMLWindowController):
@@ -354,8 +158,14 @@ class MainWindowController(QMLWindowController):
     error = pyqtSignal(str, str)
     calccompleted = pyqtSignal()
     
+    PROP_NAME_DIM = "dim"
+    PROP_NAME_DIFFSYS = "diffSysList"
+    PROP_NAME_IMP_OPER = "impOperatorList"
+    PROP_NAME_POINTS = "points"
+    PROP_NAME_THETA = "theta"
+    
     def __init__(self, parent=None):
-        super().__init__('qmlsrc/ImpulseSystemV3.qml',parent)
+        super().__init__(QML_MAIN_WINDOW_URL, parent)
         self.connects()
         self.__bgthread = QThread()
         self.__impsyslist = []
@@ -379,57 +189,58 @@ class MainWindowController(QMLWindowController):
         )
 
     def readdatafromdelegate(self):
-        data = self.__impulsesystemdelegate.data()
-        self.dim = data["dim"]
-        self.diffSysList = data["diffsys"]
-        self.impOperatorList = data["impoper"]
-        self.points = data["points"]
-        self.theta = data["thetastr"]
+        self.dim = self.__impulsesystemdelegate.dim()
+        self.diffSysList = self.__impulsesystemdelegate.diffsys()
+        self.impOperatorList = self.__impulsesystemdelegate.impoperator()
+        self.points = self.__impulsesystemdelegate.points()
+        self.theta = self.__impulsesystemdelegate.theta()
 
     def openFile(self, url):
         self.__impulsesystemdelegate.fileurl = url
-        self.runblockorprinterror(self.__impulsesystemdelegate.load, "Ошибка при чтении файла")
+        title = LangManagerSingleton.localization().ERROR_LOAD_FILE_TITLE
+        self.runblockorprinterror(self.__impulsesystemdelegate.load, title)
         self.readdatafromdelegate()
     
     def saveFile(self, url):
         self.setargstodelegate()
         self.__impulsesystemdelegate.fileurl = url
-        self.runblockorprinterror(self.__impulsesystemdelegate.save, "Ошибка при записи файла")
+        title = LangManagerSingleton.localization().ERROR_SAVE_FILE_TITLE
+        self.runblockorprinterror(self.__impulsesystemdelegate.save, title)
     
     @property
     def dim(self):
-        return self.window.property("dim")
+        return self.window.property(self.PROP_NAME_DIM)
     @dim.setter
     def dim(self, val):
-        self.window.setProperty("dim", val)
+        self.window.setProperty(self.PROP_NAME_DIM, val)
     
     @property
     def diffSysList(self):
-        return self.window.property("diffSysList").toVariant()
+        return self.window.property(self.PROP_NAME_DIFFSYS).toVariant()
     @diffSysList.setter
     def diffSysList(self, val):
-        self.window.setProperty("diffSysList", val)
+        self.window.setProperty(self.PROP_NAME_DIFFSYS, val)
     
     @property
     def impOperatorList(self):
-        return self.window.property("impOperatorList").toVariant()
+        return self.window.property(self.PROP_NAME_IMP_OPER).toVariant()
     @impOperatorList.setter
     def impOperatorList(self, val):
-        self.window.setProperty("impOperatorList", val)
+        self.window.setProperty(self.PROP_NAME_IMP_OPER, val)
     
     @property
     def points(self):
-        return self.window.property("points").toVariant()
+        return self.window.property(self.PROP_NAME_POINTS).toVariant()
     @points.setter
     def points(self, val):
-        self.window.setProperty("points", val)
+        self.window.setProperty(self.PROP_NAME_POINTS, val)
     
     @property
     def theta(self):
-        return self.window.property("theta").toVariant()
+        return self.window.property(self.PROP_NAME_THETA).toVariant()
     @theta.setter
     def theta(self, val):
-        self.window.setProperty("theta", val)
+        self.window.setProperty(self.PROP_NAME_THETA, val)
     
     def runblockorprinterror(self, block, errortitle):
         try:
@@ -444,27 +255,37 @@ class MainWindowController(QMLWindowController):
         self.setargstodelegate()
         impsys = ImpulseSystem()
         impsys.dim = self.__impulsesystemdelegate.parsedim()
-        def parsepoints(): impsys.points = self.__impulsesystemdelegate.parsepoints()
-        def parsetheta(): impsys.theta = self.__impulsesystemdelegate.parsetheta()
-        def parsediffsystem(): impsys.diffsys = self.__impulsesystemdelegate.parsediffsystem()
-        def parseimpoperator(): impsys.impoperator = self.__impulsesystemdelegate.parseimpoperator()
-        if not self.runblockorprinterror(parsepoints, "Ошибка в начальных точках"): return
-        if not self.runblockorprinterror(parsetheta, "Ошибка в списке промежутков"): return
-        if not self.runblockorprinterror(parsediffsystem, "Ошибка в дифф системе"): return
-        if not self.runblockorprinterror(parseimpoperator, "Ошибка в импульсном операторе"): return
-        print(impsys.points)
+        def parsepoints(): 
+            impsys.points = self.__impulsesystemdelegate.parsepoints()
+        def parsetheta(): 
+            impsys.theta = self.__impulsesystemdelegate.parsetheta()
+        def parsediffsystem(): 
+            impsys.diffsys = self.__impulsesystemdelegate.parsediffsystem()
+        def parseimpoperator(): 
+            impsys.impoperator = self.__impulsesystemdelegate.parseimpoperator()
+        if not self.runblockorprinterror(parsepoints, 
+            LangManagerSingleton.localization().ERROR_PARSE_POINTS_TITLE): 
+            return
+        if not self.runblockorprinterror(parsetheta, 
+            LangManagerSingleton.localization().ERROR_PARSE_THETA_TITLE): 
+            return
+        if not self.runblockorprinterror(parsediffsystem, 
+            LangManagerSingleton.localization().ERROR_PARSE_DIFF_SYS_TITLE): 
+            return
+        if not self.runblockorprinterror(parseimpoperator, 
+            LangManagerSingleton.localization().ERROR_PARSE_IMP_OPER_TITLE): 
+            return
         self.addsystobgthread(impsys)
         self.__bgthread.start()
         self.startcalc.emit(time, step)
     
     @pyqtSlot(QObject, str)
     def errorcalc(self, impsys, msg):
-        self.error.emit("Ошибка при вычислениях", msg)
+        self.error.emit(LangManagerSingleton.localization().ERROR_IN_CALCULATIONS, msg)
         self.__impsyslist.remove(impsys)
         del(impsys)
         if len(self.__impsyslist) == 0:
             self.__bgthread.quit()
-        pass
     
     def addsystobgthread(self, impsys):
         self.startcalc.connect(impsys.startcalc)
@@ -476,7 +297,7 @@ class MainWindowController(QMLWindowController):
     @pyqtSlot(QObject)
     def calccomleted(self, impsys):
         self.r = ResultWindowController()
-        args = arglist(impsys.dim) + ['norma']
+        args = result_arglist(impsys.dim)
         self.r.setresult(args, impsys.results)
         self.r.show_view()
         self.calccompleted.emit()
@@ -484,18 +305,14 @@ class MainWindowController(QMLWindowController):
         del(impsys)
         if len(self.__impsyslist) == 0:
             self.__bgthread.quit()
-        pass
 
 
 def main():
-    app = QApplication(argv)
-
+    qApp = QApplication(argv)
     isys = ImpulseSystem()
     mwc = MainWindowController()
     mwc.show_view()
-    exit(app.exec_())
-
-    pass
+    exit(qApp.exec_())
     
 
 if __name__=='__main__':
