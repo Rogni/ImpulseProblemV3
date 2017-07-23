@@ -8,10 +8,9 @@ import Qt.labs.platform 1.0 as Dialogs
 Window {
     id: window
     visible: true
-    width: 800
+    width: 1024
     height: 600
     title: qsTr("ImpulseProblemV3.py")
-
     property int dim: 1
     property var args: []
     property var diffSysList: []

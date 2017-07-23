@@ -10,7 +10,7 @@
 from math import *
 
 
-class CompiledFun(object):
+class CompiledFunction(object):
     """Single-line function from string. Support functions and constants from math.
     
     Examples:

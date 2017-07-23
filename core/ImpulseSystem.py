@@ -8,7 +8,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 
-from .CompiledFun import CompiledFun
+from .CompiledFunction import CompiledFunction
 from PyQt5.QtCore import QObject, pyqtSlot, pyqtSignal
 
 
@@ -52,11 +52,11 @@ class System(object):
         if dim > 0:
             self.__dim = dim
             self.__args = arglist(dim)
-            self.__funcs = [CompiledFun(DEFAULT_SYSTEM_STRING, self.__args) for i in range(self.dim)]
+            self.__funcs = [CompiledFunction(DEFAULT_SYSTEM_STRING, self.__args) for i in range(self.dim)]
     
     def __setitem__(self, index, strfun):
         try:
-            c = CompiledFun(strfun, self.__args)
+            c = CompiledFunction(strfun, self.__args)
             self.__funcs[index] = c
         except Exception as ex:
             print(ex)

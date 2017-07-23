@@ -14,9 +14,19 @@ from PyQt5.QtWidgets import QApplication
 from sys import argv
 import json
 
-from core.CompiledFun import CompiledFun
-from core.ImpulseSystem import ImpulseSystem, System, arglist, result_arglist
+from core.CompiledFunction import CompiledFunction
+from core.ImpulseSystem import ImpulseSystem, arglist, result_arglist
+from core.ImpulseSystemDelegate import ImpulseSystemDelegate
 from core.Localization import LangManagerSingleton
+from core.Localization import (
+    ERROR_LOAD_FILE_TITLE,
+    ERROR_SAVE_FILE_TITLE,
+    ERROR_PARSE_POINTS_TITLE,
+    ERROR_PARSE_THETA_TITLE,
+    ERROR_PARSE_DIFF_SYS_TITLE,
+    ERROR_PARSE_IMP_OPER_TITLE,
+    ERROR_IN_CALCULATIONS
+)
 
 try:
     from OpenGL import GLU
@@ -28,90 +38,6 @@ QML_SRC_DIR = "qmlsrc/%s"
 QML_RESULT_WINDOW_URL = QML_SRC_DIR % "ResultWindow.qml"
 QML_MAIN_WINDOW_URL = QML_SRC_DIR % "ImpulseSystemV3.qml"
 
-        
-class ImpulseSystemDelegate(object):
-    """
-    """
-    
-    PROP_NAME_DIM = "dim"
-    PROP_NAME_DIFFSYS = "diffsys"
-    PROP_NAME_IMP_OPER = "impoper"
-    PROP_NAME_POINTS = "points"
-    PROP_NAME_THETA = "thetastr"
-    def __init__(self, **args):
-        self.fileurl = ''
-        self.__systemdict = args
-    
-    def setdata(self, **args):
-        self.__systemdict = args
-    
-    def data(self):
-        return self.__systemdict
-    
-    def load(self):
-        impsysfile = open(QUrl(self.fileurl).toLocalFile(), "r")
-        jsonstr = impsysfile.read()
-        impsysfile.close()
-        self.__systemdict = json.loads(jsonstr)
-        
-    def save(self):
-        impsysfile = open(QUrl(self.fileurl).toLocalFile(), "w")
-        jsonstr = json.dumps(self.__systemdict)
-        impsysfile.write(jsonstr)
-        impsysfile.close()
-    
-    def parsedim(self):
-        return int(self.__systemdict[self.PROP_NAME_DIM])
-    
-    def parsesystematkey(self, key):
-        system = System()
-        system.dim = self.parsedim()
-        for i in self.__systemdict[key]:
-            system[int(i['index'])] = i['right']
-        return system
-    
-    def parsediffsystem(self):
-        return self.parsesystematkey(self.PROP_NAME_DIFFSYS)
-    
-    def parseimpoperator(self):
-        return self.parsesystematkey(self.PROP_NAME_IMP_OPER)
-    
-    def parsepoints(self):
-        strpoints = self.__systemdict[self.PROP_NAME_POINTS]
-        fpoints = []
-        for point in strpoints:
-            fpoint = {}
-            for k in point:
-                fu = CompiledFun(point[k], []) 
-                fpoint[k] = fu({})
-            fpoints.append(fpoint)
-        return fpoints
-    
-    def parsetheta(self):
-        theta = []
-        for th in self.__systemdict[self.PROP_NAME_THETA]:
-            fu = CompiledFun(th, [])
-            val = fu()
-            if val > 0:
-                theta.append(val)
-            else:
-                raise Exception(LangManagerSingleton.localization().ERROR_THETA_MUST_ABOVE_ZERO % (th , str(val)))
-        return theta
-    
-    def dim(self):
-        return self.__systemdict[self.PROP_NAME_DIM]
-        
-    def diffsys(self):
-        return self.__systemdict[self.PROP_NAME_DIFFSYS]
-        
-    def impoperator(self):
-        return self.__systemdict[self.PROP_NAME_IMP_OPER]
-        
-    def points(self):
-        return self.__systemdict[self.PROP_NAME_POINTS]
-        
-    def theta(self):
-        return self.__systemdict[self.PROP_NAME_THETA]
 
 class QMLWindowController(QObject):
     """
@@ -197,14 +123,14 @@ class MainWindowController(QMLWindowController):
 
     def openFile(self, url):
         self.__impulsesystemdelegate.fileurl = url
-        title = LangManagerSingleton.localization().ERROR_LOAD_FILE_TITLE
+        title = LangManagerSingleton.localization()[ERROR_LOAD_FILE_TITLE]
         self.runblockorprinterror(self.__impulsesystemdelegate.load, title)
         self.readdatafromdelegate()
     
     def saveFile(self, url):
         self.setargstodelegate()
         self.__impulsesystemdelegate.fileurl = url
-        title = LangManagerSingleton.localization().ERROR_SAVE_FILE_TITLE
+        title = LangManagerSingleton.localization()[ERROR_SAVE_FILE_TITLE]
         self.runblockorprinterror(self.__impulsesystemdelegate.save, title)
     
     @property
@@ -264,16 +190,16 @@ class MainWindowController(QMLWindowController):
         def parseimpoperator(): 
             impsys.impoperator = self.__impulsesystemdelegate.parseimpoperator()
         if not self.runblockorprinterror(parsepoints, 
-            LangManagerSingleton.localization().ERROR_PARSE_POINTS_TITLE): 
+            LangManagerSingleton.localization()[ERROR_PARSE_POINTS_TITLE]): 
             return
         if not self.runblockorprinterror(parsetheta, 
-            LangManagerSingleton.localization().ERROR_PARSE_THETA_TITLE): 
+            LangManagerSingleton.localization()[ERROR_PARSE_THETA_TITLE]): 
             return
         if not self.runblockorprinterror(parsediffsystem, 
-            LangManagerSingleton.localization().ERROR_PARSE_DIFF_SYS_TITLE): 
+            LangManagerSingleton.localization()[ERROR_PARSE_DIFF_SYS_TITLE]): 
             return
         if not self.runblockorprinterror(parseimpoperator, 
-            LangManagerSingleton.localization().ERROR_PARSE_IMP_OPER_TITLE): 
+            LangManagerSingleton.localization()[ERROR_PARSE_IMP_OPER_TITLE]): 
             return
         self.addsystobgthread(impsys)
         self.__bgthread.start()
@@ -281,7 +207,7 @@ class MainWindowController(QMLWindowController):
     
     @pyqtSlot(QObject, str)
     def errorcalc(self, impsys, msg):
-        self.error.emit(LangManagerSingleton.localization().ERROR_IN_CALCULATIONS, msg)
+        self.error.emit(LangManagerSingleton.localization()[ERROR_IN_CALCULATIONS], msg)
         self.__impsyslist.remove(impsys)
         del(impsys)
         if len(self.__impsyslist) == 0:
@@ -294,17 +220,24 @@ class MainWindowController(QMLWindowController):
         impsys.moveToThread(self.__bgthread)
         self.__impsyslist.append(impsys)
     
+    def removesysfrombgthread(self, impsys):
+        self.startcalc.disconnect(impsys.startcalc)
+        impsys.calccompleted.disconnect(self.calccomleted)
+        impsys.errorcalc.disconnect(self.errorcalc)
+        self.__impsyslist.remove(impsys)
+        if len(self.__impsyslist) == 0:
+            self.__bgthread.quit()
+    
     @pyqtSlot(QObject)
     def calccomleted(self, impsys):
         self.r = ResultWindowController()
         args = result_arglist(impsys.dim)
         self.r.setresult(args, impsys.results)
+        self.removesysfrombgthread(impsys)
+        #import sys
+        #print(sys.getrefcount(impsys))
         self.r.show_view()
         self.calccompleted.emit()
-        self.__impsyslist.remove(impsys)
-        del(impsys)
-        if len(self.__impsyslist) == 0:
-            self.__bgthread.quit()
 
 
 def main():

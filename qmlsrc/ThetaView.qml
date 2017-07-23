@@ -61,7 +61,7 @@ Page {
                         TextField {
                             selectByMouse: true
                             text: modelData
-                            width: 128
+                            width: 150
                             height: 32
                             anchors.verticalCenter: parent.verticalCenter
                             onTextChanged: {

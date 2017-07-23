@@ -30,7 +30,7 @@ Page {
                     text: "-"
                     onClicked: {
                         root.model.splice(indexrow, 1)
-                        root.model = root.model
+                        modelChanged()
                     }
                 }
 
@@ -45,7 +45,7 @@ Page {
                         TextField {
                             selectByMouse: true
                             text: root.model[indexrow][modelData]
-                            width: 36
+                            width: 150
                             height: 32
                             anchors.verticalCenter: parent.verticalCenter
                             onTextChanged: {
