@@ -1,8 +1,6 @@
 <HTML>
     <HEAD>
-        <TITLE>README - ImpulseProblemV3</TITLE>
         <BASE target="_blank">
-        <STYLE></STYLE>
     </HEAD>
     <BODY>
         <H1>ImpulseProblemV3</H1>
