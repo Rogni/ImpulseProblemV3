@@ -24,6 +24,7 @@ BaseWindow {
     property string calculateTitleText
     property string openFileTitleText
     property string saveFileTitleText
+    property string languageText
 
     // Content Titles
     property string diffSystemTitleText
@@ -116,7 +117,7 @@ BaseWindow {
                 }
 
                 ToolButton {
-                    text: "Изменить язык"
+                    text: languageText
                     onClicked: langMenu.open()
                     Dialog {
                         id: langMenu

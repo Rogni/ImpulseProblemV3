@@ -16,7 +16,6 @@ LANG_DIR = "core/LangFiles/"
 
 
 THIS_LANG = "THIS_LANG"
-LANG = "LANG"
 
 class LangFile(object):
     def __init__(self, filename):

@@ -44,6 +44,7 @@ ERROR_IN_CALCULATIONS = "ERROR_IN_CALCULATIONS"
 OPEN = "OPEN"
 SAVE = "SAVE"
 CALCULATE = "CALCULATE"
+LANG = "LANG"
 
 #MainView -- Content Titles keys
 DIFF_SYSTEM_TITLE = "DIFF_SYSTEM_TITLE"
@@ -280,6 +281,9 @@ class MainWindowController(QMLWindowController):
             LangManagerSingleton.localization()[OPEN])
         self.window.setProperty("saveFileTitleText",
             LangManagerSingleton.localization()[SAVE])
+        self.window.setProperty("languageText",
+            LangManagerSingleton.localization()[LANG])
+            
 
         # Content Titles
         self.window.setProperty("diffSystemTitleText",
