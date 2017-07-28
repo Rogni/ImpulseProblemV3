@@ -17,16 +17,7 @@ import json
 from core.CompiledFunction import CompiledFunction
 from core.ImpulseSystem import ImpulseSystem, arglist, result_arglist
 from core.ImpulseSystemDelegate import ImpulseSystemDelegate
-from core.Localization import LangManagerSingleton
-from core.Localization import (
-    ERROR_LOAD_FILE_TITLE,
-    ERROR_SAVE_FILE_TITLE,
-    ERROR_PARSE_POINTS_TITLE,
-    ERROR_PARSE_THETA_TITLE,
-    ERROR_PARSE_DIFF_SYS_TITLE,
-    ERROR_PARSE_IMP_OPER_TITLE,
-    ERROR_IN_CALCULATIONS
-)
+from core.Localization import LangManagerSingleton, LangManagerDelegate
 
 try:
     from OpenGL import GLU
@@ -39,17 +30,54 @@ QML_RESULT_WINDOW_URL = QML_SRC_DIR % "ResultWindow.qml"
 QML_MAIN_WINDOW_URL = QML_SRC_DIR % "ImpulseSystemV3.qml"
 
 
-class QMLWindowController(QObject):
+#Errors keys
+ERROR_LOAD_FILE_TITLE = "ERROR_LOAD_FILE_TITLE"
+ERROR_SAVE_FILE_TITLE = "ERROR_SAVE_FILE_TITLE"
+ERROR_PARSE_POINTS_TITLE = "ERROR_PARSE_POINTS_TITLE"
+ERROR_PARSE_THETA_TITLE = "ERROR_PARSE_THETA_TITLE"
+ERROR_PARSE_DIFF_SYS_TITLE = "ERROR_PARSE_DIFF_SYS_TITLE"
+ERROR_PARSE_IMP_OPER_TITLE = "ERROR_PARSE_IMP_OPER_TITLE"
+ERROR_IN_CALCULATIONS = "ERROR_IN_CALCULATIONS"
+
+
+#MainView -- ToolBar Titles keys
+OPEN = "OPEN"
+SAVE = "SAVE"
+CALCULATE = "CALCULATE"
+
+#MainView -- Content Titles keys
+DIFF_SYSTEM_TITLE = "DIFF_SYSTEM_TITLE"
+IMPULSE_OPERATOR_TITLE = "IMPULSE_OPERATOR_TITLE"
+INITIAL_POINTS_TITLE = "INITIAL_POINTS_TITLE"
+THETA_LIST_TITLE = "THETA_LIST_TITLE"
+
+#MainView -- Content lables keys
+ADD = "ADD"
+ADD_POINT = "ADD_POINT"
+
+#MainView -- Dialog lables keys
+MAX_TIME = "MAX_TIME"
+STEP_ON_T = "STEP_ON_T"
+NEW_DIMENTION = "NEW_DIMENTION"
+
+
+class QMLWindowController(QObject, LangManagerDelegate):
     """
     """
     def __init__(self, urlstr, parent=None):
         super().__init__(parent)
         self.engine = QQmlApplicationEngine()
         self.engine.load(QUrl(urlstr))
-        self.window = self.engine.rootObjects()[0]
+        self.window = self.engine.rootObjects()[0]  
+        self.window.windowClosed.connect(self.onclosing)
+        LangManagerSingleton.getinstance().add_delegate(self)
+        self.on_language_changed()
+        
     def show_view(self):
         self.window.show()
-
+    @pyqtSlot()
+    def onclosing(self):
+        LangManagerSingleton.getinstance().remove_delegate(self)
 
 class ResultWindowController(QMLWindowController):
     def __init__(self, parent=None):
@@ -104,6 +132,11 @@ class MainWindowController(QMLWindowController):
         self.calccompleted.connect(self.window.calculateFinished)
         self.window.openFile.connect(self.openFile)
         self.window.saveFile.connect(self.saveFile)
+        self.window.langChanged.connect(self.lang_changed)
+    
+    @pyqtSlot(str)
+    def lang_changed(self, langname):
+        LangManagerSingleton.getinstance().setlanguageatname(langname)
     
     def setargstodelegate(self):
         self.__impulsesystemdelegate.setdata(
@@ -135,38 +168,38 @@ class MainWindowController(QMLWindowController):
     
     @property
     def dim(self):
-        return self.window.property(self.PROP_NAME_DIM)
+        return self.window.property(MainWindowController.PROP_NAME_DIM)
     @dim.setter
     def dim(self, val):
-        self.window.setProperty(self.PROP_NAME_DIM, val)
+        self.window.setProperty(MainWindowController.PROP_NAME_DIM, val)
     
     @property
     def diffSysList(self):
-        return self.window.property(self.PROP_NAME_DIFFSYS).toVariant()
+        return self.window.property(MainWindowController.PROP_NAME_DIFFSYS).toVariant()
     @diffSysList.setter
     def diffSysList(self, val):
-        self.window.setProperty(self.PROP_NAME_DIFFSYS, val)
+        self.window.setProperty(MainWindowController.PROP_NAME_DIFFSYS, val)
     
     @property
     def impOperatorList(self):
-        return self.window.property(self.PROP_NAME_IMP_OPER).toVariant()
+        return self.window.property(MainWindowController.PROP_NAME_IMP_OPER).toVariant()
     @impOperatorList.setter
     def impOperatorList(self, val):
-        self.window.setProperty(self.PROP_NAME_IMP_OPER, val)
+        self.window.setProperty(MainWindowController.PROP_NAME_IMP_OPER, val)
     
     @property
     def points(self):
-        return self.window.property(self.PROP_NAME_POINTS).toVariant()
+        return self.window.property(MainWindowController.PROP_NAME_POINTS).toVariant()
     @points.setter
     def points(self, val):
-        self.window.setProperty(self.PROP_NAME_POINTS, val)
+        self.window.setProperty(MainWindowController.PROP_NAME_POINTS, val)
     
     @property
     def theta(self):
-        return self.window.property(self.PROP_NAME_THETA).toVariant()
+        return self.window.property(MainWindowController.PROP_NAME_THETA).toVariant()
     @theta.setter
     def theta(self, val):
-        self.window.setProperty(self.PROP_NAME_THETA, val)
+        self.window.setProperty(MainWindowController.PROP_NAME_THETA, val)
     
     def runblockorprinterror(self, block, errortitle):
         try:
@@ -238,6 +271,44 @@ class MainWindowController(QMLWindowController):
         #print(sys.getrefcount(impsys))
         self.r.show_view()
         self.calccompleted.emit()
+
+    #Lang manager delegate
+    def on_language_changed(self):
+        self.window.setProperty("calculateTitleText",
+            LangManagerSingleton.localization()[CALCULATE])
+        self.window.setProperty("openFileTitleText",
+            LangManagerSingleton.localization()[OPEN])
+        self.window.setProperty("saveFileTitleText",
+            LangManagerSingleton.localization()[SAVE])
+
+        # Content Titles
+        self.window.setProperty("diffSystemTitleText",
+            LangManagerSingleton.localization()[DIFF_SYSTEM_TITLE])
+        self.window.setProperty("impOperatorTitleText",
+            LangManagerSingleton.localization()[IMPULSE_OPERATOR_TITLE])
+        self.window.setProperty("initialPoinsTitleText",
+            LangManagerSingleton.localization()[INITIAL_POINTS_TITLE])
+        self.window.setProperty("thetaListTitleText",
+            LangManagerSingleton.localization()[THETA_LIST_TITLE])
+
+        # Content lables
+        self.window.setProperty("addText",
+            LangManagerSingleton.localization()[ADD])
+        self.window.setProperty("addPointText",
+            LangManagerSingleton.localization()[ADD_POINT])
+
+        # Dialog lables
+        self.window.setProperty("maxTimeText", 
+            LangManagerSingleton.localization()[MAX_TIME])
+        self.window.setProperty("stepForTText",
+            LangManagerSingleton.localization()[STEP_ON_T])
+        self.window.setProperty("newDimentionText",
+            LangManagerSingleton.localization()[NEW_DIMENTION])
+        self.window.setProperty("currentLang",
+            LangManagerSingleton.getinstance().langname())
+        self.window.setProperty("langs",
+            LangManagerSingleton.getinstance().all_langs())
+
 
 
 def main():

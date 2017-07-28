@@ -10,41 +10,13 @@
 
 import json
 import os
+import locale
 
 LANG_DIR = "core/LangFiles/"
 
+
 THIS_LANG = "THIS_LANG"
 LANG = "LANG"
-ERROR_LOAD_FILE_TITLE = "ERROR_LOAD_FILE_TITLE"
-ERROR_SAVE_FILE_TITLE = "ERROR_SAVE_FILE_TITLE"
-ERROR_PARSE_POINTS_TITLE = "ERROR_PARSE_POINTS_TITLE"
-ERROR_PARSE_THETA_TITLE = "ERROR_PARSE_THETA_TITLE"
-ERROR_PARSE_DIFF_SYS_TITLE = "ERROR_PARSE_DIFF_SYS_TITLE"
-ERROR_PARSE_IMP_OPER_TITLE = "ERROR_PARSE_IMP_OPER_TITLE"
-ERROR_THETA_MUST_ABOVE_ZERO = "ERROR_THETA_MUST_ABOVE_ZERO"
-ERROR_IN_CALCULATIONS = "ERROR_IN_CALCULATIONS"
-
-class EnLocalizationStrings(object):
-    ERROR_LOAD_FILE_TITLE = "Error from load file"
-    ERROR_SAVE_FILE_TITLE = "Error from save file"
-    ERROR_PARSE_POINTS_TITLE = "Error in initial points"
-    ERROR_PARSE_THETA_TITLE = "Error in theta list"
-    ERROR_PARSE_DIFF_SYS_TITLE = "Error in diff system"
-    ERROR_PARSE_IMP_OPER_TITLE = "Error in impulse operator"
-    ERROR_THETA_MUST_ABOVE_ZERO = "Theta must be above 0: %s = %s"
-    ERROR_IN_CALCULATIONS = "Error in calculations"
-    
-    
-class RuLocalizationStrings(EnLocalizationStrings):
-    ERROR_LOAD_FILE_TITLE = "Ошибка при чтении файла"
-    ERROR_SAVE_FILE_TITLE = "Ошибка при записи файла"
-    ERROR_PARSE_POINTS_TITLE = "Ошибка в начальных точках"
-    ERROR_PARSE_THETA_TITLE = "Ошибка в списке промежутков"
-    ERROR_PARSE_DIFF_SYS_TITLE = "Ошибка в дифф системе"
-    ERROR_PARSE_IMP_OPER_TITLE = "Ошибка в импульсном операторе"
-    ERROR_THETA_MUST_ABOVE_ZERO = "Промежуток должен быть больше 0: %s = %s"
-    ERROR_IN_CALCULATIONS = "Ошибка при вычислениях"
-
 
 class LangFile(object):
     def __init__(self, filename):
@@ -58,13 +30,15 @@ class LangFile(object):
 
 
 class LangManagerDelegate(object):
-    def on_language_chaged(self):
+    def on_language_changed(self):
         pass
+    pass
 
 
 class LangManagerSingleton(object):
-    RU = "ru"
-    EN = "en"
+    """"""
+    RU = "ru_RU"
+    EN = "en_EN"
     __instance = None
     def __init__(self, isgetinstance=False):
         if not isgetinstance:
@@ -98,14 +72,24 @@ class LangManagerSingleton(object):
         if lang in self.__valid_files:
             self.__lang = lang
             self.__localization_file = LangFile(LANG_DIR + lang)
+            self.__lang_changed()
         else:
             raise Exception("Language not found")
+    
+    def setlanguageatname(self, langname):
+        for filename, lang in self.__valid_files.items():
+            if lang == langname:
+                self.setlanguage(filename)
+                break
     
     def language(self):
         return self.__lang
         
     def langname(self):
         return self.__localization_file.get_lang_name()
+    
+    def all_langs(self):
+        return list(self.__valid_files.values())
     
     @staticmethod
     def localization():
@@ -122,7 +106,7 @@ class LangManagerSingleton(object):
     def __lang_changed(self):
         for delegate in self.__delegates:
             try:
-                delegate.on_language_chaged()
+                delegate.on_language_changed()
             except Exception as ex:
                 print(ex)
 

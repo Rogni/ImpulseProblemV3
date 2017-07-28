@@ -5,6 +5,7 @@ Page {
     id: root
     property var model: []
     property alias headerTitle: headerLabel.text
+    property string leftString: "x%1"
     header: HeaderLabel {
         id: headerLabel
     }
@@ -18,7 +19,7 @@ Page {
             height: 40
             Label {
                 id: label
-                text: modelData.left + " = "
+                text: leftString.arg(index + 1) + " = "
                 anchors.left: parent.left
                 anchors.margins: 8
                 anchors.verticalCenter: parent.verticalCenter

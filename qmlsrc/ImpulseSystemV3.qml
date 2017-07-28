@@ -1,11 +1,10 @@
 import QtQuick 2.8
-import QtQuick.Window 2.2
 import QtQuick.Controls 2.1
 import QtQuick.Controls 1.4 as Controls1
 import QtQuick.Layouts 1.1
 import Qt.labs.platform 1.0 as Dialogs
 
-Window {
+BaseWindow {
     id: window
     visible: true
     width: 1024
@@ -18,11 +17,33 @@ Window {
     property var points: []
     property var theta: []
 
+    property var langs
+    property string currentLang
 
+    // ToolBar Titles
+    property string calculateTitleText
+    property string openFileTitleText
+    property string saveFileTitleText
+
+    // Content Titles
+    property string diffSystemTitleText
+    property string impOperatorTitleText
+    property string initialPoinsTitleText
+    property string thetaListTitleText
+
+    // Content lables
+    property string addText
+    property string addPointText
+
+    // Dialog lables
+    property string maxTimeText
+    property string stepForTText
+    property string newDimentionText
 
     signal calculate(double maxtime, double h)
     signal openFile(string url)
     signal saveFile(string url)
+    signal langChanged(string newlang)
     function calculateStarted() {
         loadIndicator.running = true
     }
@@ -49,7 +70,6 @@ Window {
             args.push(a)
             var d = {}
             d.index = i
-            d.left = "d" + a + "/dt"
             d.right = "0"
             diffSys.push(d)
             var imp = {}
@@ -77,21 +97,40 @@ Window {
                     onClicked: dimDialog.open()
                 }
                 ToolButton {
-                    text: "Посчитать"
+                    text: calculateTitleText
                     onClicked: calculateDialog.open()
                 }
                 ToolButton {
-                    text: "Открыть"
+                    text: openFileTitleText
                     onClicked: {
                         fileDialog.fileMode = Dialogs.FileDialog.OpenFile
                         fileDialog.open()
                     }
                 }
                 ToolButton {
-                    text: "Сохранить"
+                    text: saveFileTitleText
                     onClicked:{
                         fileDialog.fileMode = Dialogs.FileDialog.SaveFile
                         fileDialog.open()
+                    }
+                }
+
+                ToolButton {
+                    text: "Изменить язык"
+                    onClicked: langMenu.open()
+                    Dialog {
+                        id: langMenu
+                        y: parent.height
+                        onOpened: {
+                            langComboBox.currentIndex = langs.indexOf(currentLang)
+                        }
+
+                        ComboBox {
+                            id: langComboBox
+                            model: langs
+                            onActivated: langChanged(currentText)
+
+                        }
                     }
                 }
             }
@@ -107,16 +146,18 @@ Window {
                 width: 400
                 SystemView {
                     id: diffSysView
-                    headerTitle: "Дифференциальная система"
+                    headerTitle: diffSystemTitleText
                     Layout.minimumHeight: 100
                     height: 250
                     model: window.diffSysList
+                    leftString: "dx%1/dt"
                 }
                 SystemView {
                     id: impOperatorView
-                    headerTitle: "Импульсный оператор"
+                    headerTitle: impOperatorTitleText
                     Layout.minimumHeight: 100
                     model: window.impOperatorList
+                    leftString: "x%1"
                 }
             }
 
@@ -125,7 +166,7 @@ Window {
                 orientation: Qt.Vertical
                 PointsView {
                     id: pointsView
-                    headerTitle: "Начальные точки"
+                    headerTitle: initialPoinsTitleText
                     Layout.minimumHeight: 100
                     height: 250
                     model: window.points
@@ -137,12 +178,14 @@ Window {
                         window.points.push(p)
                         window.points = window.points
                     }
+                    addPointText: window.addPointText
                 }
                 ThetaView {
                     id: thetaView
-                    headerTitle: "Промежутки между импульсами θ=[θ1, θ2, ...]"
+                    headerTitle: thetaListTitleText
                     Layout.minimumHeight: 100
                     model: window.theta
+                    addText: window.addText
                 }
             }
         }
@@ -163,7 +206,7 @@ Window {
                 anchors.right: parent.right
                 anchors.rightMargin: 0
                 Label {
-                    text: "Конечное время: "
+                    text: maxTimeText
                     anchors.verticalCenter: parent.verticalCenter
                 }
                 TextField {
@@ -180,7 +223,7 @@ Window {
                 anchors.rightMargin: 0
                 Label {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: "Шаг по сетке t: "
+                    text: stepForTText
                 }
                 TextField {
                     id: stepField
@@ -212,7 +255,7 @@ Window {
                 anchors.right: parent.right
                 anchors.rightMargin: 0
                 Label {
-                    text: "Новая размерность: "
+                    text: newDimentionText
                     anchors.verticalCenter: parent.verticalCenter
                 }
                 TextField {

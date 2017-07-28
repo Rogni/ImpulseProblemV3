@@ -12,8 +12,9 @@ from PyQt5.QtCore import QUrl
 
 from core.CompiledFunction import CompiledFunction
 from core.ImpulseSystem import System
-from core.Localization import LangManagerSingleton, ERROR_THETA_MUST_ABOVE_ZERO
 import json
+
+ERROR_THETA_MUST_ABOVE_ZERO = "ERROR_THETA_MUST_ABOVE_ZERO"
 
 PROP_NAME_DIM = "dim"
 PROP_NAME_DIFFSYS = "diffsys"

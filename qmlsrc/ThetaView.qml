@@ -6,6 +6,7 @@ Page {
     id: root
     property alias headerTitle: headerLabel.text
     property var model: []
+    property string addText
     onModelChanged: {
         visualModel.model = model
     }
@@ -102,7 +103,7 @@ Page {
     }
 
     footer: Button {
-        text: "Добавить"
+        text: addText
         onClicked: {
             root.model.push("1")
             visualModel.model = root.model

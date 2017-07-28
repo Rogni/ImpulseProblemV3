@@ -1,0 +1,26 @@
+{
+"THIS_LANG" : "English",
+"LANG" : "Language",
+"ERROR_LOAD_FILE_TITLE" : "Error from load file",
+"ERROR_SAVE_FILE_TITLE" : "Error from save file",
+"ERROR_PARSE_POINTS_TITLE" : "Error in initial points",
+"ERROR_PARSE_THETA_TITLE" : "Error in theta list",
+"ERROR_PARSE_DIFF_SYS_TITLE" : "Error in diff system",
+"ERROR_PARSE_IMP_OPER_TITLE" : "Error in impulse operator",
+"ERROR_THETA_MUST_ABOVE_ZERO" : "Theta must be above 0: %s = %s",
+"ERROR_IN_CALCULATIONS" : "Error in calculations",
+
+"OPEN": "Open",
+"SAVE": "Save",
+"CALCULATE": "Calculate",
+"DIFF_SYSTEM_TITLE": "Differential system",
+"IMPULSE_OPERATOR_TITLE": "Impulse operator",
+"INITIAL_POINTS_TITLE": "Initial points",
+"THETA_LIST_TITLE": "Intervals between impulses θ=[θ1, θ2, ...]",
+"ADD": "Add",
+"ADD_POINT" : "Add point",
+
+"MAX_TIME" : "Maximum time: ",
+"STEP_ON_T" : "Step on grid t: ",
+"NEW_DIMENTION" : "New dimention: "
+}

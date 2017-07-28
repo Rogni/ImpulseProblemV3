@@ -7,6 +7,7 @@ Page {
     property alias headerTitle: headerLabel.text
     property var model: []
     property var keys: []
+    property string addPointText
     width: 400
     height: 400
     header: HeaderLabel {
@@ -62,7 +63,7 @@ Page {
     }
 
     footer: Button {
-        text: "Добавить точку"
+        text: addPointText
         onClicked: addPoint()
     }
 }

@@ -4,7 +4,7 @@ import QtQuick.Controls 2.1
 import QtQuick.Controls 1.4
 import QtQuick.Layouts 1.1
 
-Window {
+BaseWindow {
     id: root
     property var model: []
     property var args: []
