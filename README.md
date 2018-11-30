@@ -10,12 +10,22 @@
             <LI>Установите python3 и pip <br>
                 <a href="https://www.python.org/downloads/">https://www.python.org/downloads/</a>
             </LI>
-            <LI>Установите matplotlib и pyqt5 <br>
-                <a href="https://matplotlib.org/users/installing.html">https://matplotlib.org/users/installing.html</a><br>
-                <a href="http://pyqt.sourceforge.net/Docs/PyQt5/installation.html">http://pyqt.sourceforge.net/Docs/PyQt5/installation.html</a>
+            <LI>Настройте виртуальное окружение и установите зависимости<br>
+                '''bash
+                python3 -m virtualenv impulse_problem
+                cd impulse_problem
+                . bin/activate
+                git clone https://github.com/Rogni/ImpulseProblemV3
+                cd ImpulseProblemV3
+                pip install -r requirements.txt
+                python ImpulseProblemV3.py
+                '''
             </LI>
             <LI>
                 Запустите ImpulseProblemV3.py используя python
+                '''bash
+                python ImpulseProblemV3.py
+                '''
             </LI>
         </OL>
         <H2>Инструкция</H2>
