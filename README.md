@@ -11,7 +11,7 @@
 python3 -m virtualenv impulse_problem
 cd impulse_problem
 . bin/activate
-git clone https://github.com/Rogni/ImpulseProblemV3
+git clone https://github.com/Rogni/ImpulseProblemV3.git
 cd ImpulseProblemV3
 pip install -r requirements.txt
 ```
