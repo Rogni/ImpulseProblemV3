@@ -14,7 +14,6 @@ cd impulse_problem
 git clone https://github.com/Rogni/ImpulseProblemV3
 cd ImpulseProblemV3
 pip install -r requirements.txt
-python ImpulseProblemV3.py
 ```
 
 3) Запустите ImpulseProblemV3.py используя python
